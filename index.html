@@ -40,6 +40,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .empty{color:var(--mute);text-align:center;padding:40px 0}
 label{display:flex;gap:6px;align-items:center}
 select{font:inherit;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:4px}
+.src{display:block;margin-top:6px;font:italic .82rem "Public Sans",system-ui,sans-serif;color:var(--mute)}
 .hide{display:none}
 </style></head><body><main>
 <header>
@@ -53,7 +54,7 @@ select{font:inherit;background:var(--card);color:var(--ink);border:1px solid var
  <div class="bar"><button class="btn alt" id="prev">‹ Anterior</button><button class="btn" id="next">Próximo ›</button></div>
 </section>
 <section id="qzv" class="hide">
- <div class="meta"><span id="qpos"></span><label>Questões <select id="nq"><option value="10">10</option><option value="20">20</option><option value="0">Todas</option></select></label></div>
+ <div class="meta"><span id="qpos"></span><label>Tipo <select id="qt"><option value="m">Misto</option><option value="a">Resposta</option><option value="t">Tema</option></select></label><label>Questões <select id="nq"><option value="10">10</option><option value="20">20</option><option value="0">Todas</option></select></label></div>
  <div id="qz"></div>
 </section>
 </main>
@@ -62,7 +63,7 @@ const $=s=>document.querySelector(s);
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const shuf=a=>{a=[...a];for(let k=a.length-1;k>0;k--){const j=Math.random()*(k+1)|0;[a[k],a[j]]=[a[j],a[k]]}return a};
 let D=[],sel=new Set(),mode='fc',deck=[],i=0,flip=false,Q=null;
-const pool=()=>D.filter(m=>sel.has(m.id)).flatMap(m=>m.cards.map(c=>({...c,m:m.nome,mid:m.id})));
+const pool=()=>D.filter(m=>sel.has(m.id)).flatMap(m=>m.cards.map(c=>({...c,m:m.nome,mid:m.id,k:toks(c.t+' '+c.v+' '+c.d)})));
 const save=()=>{try{localStorage.setItem('sel',JSON.stringify([...sel]))}catch(e){}};
 
 function chips(){
@@ -100,17 +101,34 @@ document.onkeydown=e=>{if(mode!=='fc'||e.target.tagName==='SELECT')return;
  else if(e.key===' '){e.preventDefault();flip=!flip;fcRender()}};
 
 /* ---- Quiz ---- */
-function mk(c,all){
- const outros=all.filter(x=>x.v!==c.v),mesma=outros.filter(x=>x.mid===c.mid);
- const seen=new Set([c.v]),dis=[];
- for(const x of [...shuf(mesma),...shuf(outros)]){if(dis.length>=3)break;if(!seen.has(x.v)){seen.add(x.v);dis.push(x.v)}}
- return {c,opts:shuf([c.v,...dis])};
+const norm=t=>t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+const STOP=new Set('para por com que aos das dos uma nao ser sao sera pode podem como mais sua seu nos nas'.split(' '));
+const toks=t=>new Set((norm(t).match(/[a-z0-9]{3,}/g)||[]).filter(w=>!STOP.has(w)));
+const sim=(a,b)=>{let n=0;a.forEach(w=>b.has(w)&&n++);return n/(a.size+b.size-n||1)};
+/* troca um número por outro da mesma matéria com a mesma unidade (ex.: "35 anos" -> "30 anos") */
+function mut(c,all){
+ const re=/(\d+)(\s+[a-zà-ú]+)/gi;
+ for(const m of c.v.matchAll(re)){
+  const alt=new Set();
+  all.forEach(x=>{if(x.mid!==c.mid)return;for(const y of (x.v+' '+x.d).matchAll(re))if(y[2].toLowerCase()===m[2].toLowerCase()&&y[1]!==m[1])alt.add(y[1])});
+  if(alt.size)return shuf([...alt]).slice(0,2).map(n=>c.v.slice(0,m.index)+n+m[2]+c.v.slice(m.index+m[0].length));
+ }
+ return [];
+}
+function mk(c,all,rev){
+ const cand=all.filter(x=>x!==c&&x.v!==c.v&&x.t!==c.t).map(x=>({x,s:sim(c.k,x.k)+(x.mid===c.mid?.15:0)})).sort((a,b)=>b.s-a.s).map(o=>o.x);
+ const similares=[...shuf(cand.slice(0,6)),...cand.slice(6)];
+ const seen=new Set([rev?c.t:c.v]),dis=[];
+ const add=(t,f)=>{if(dis.length<3&&!seen.has(t)){seen.add(t);dis.push({t,f})}};
+ if(rev)similares.forEach(x=>add(x.t));
+ else{shuf(c.e||[]).forEach(t=>add(t));mut(c,all).forEach(t=>add(t));similares.forEach(x=>add(x.v,x.t))}
+ return {c,rev,opts:shuf([{t:rev?c.t:c.v,ok:true},...dis])};
 }
 function qStart(){
  const all=pool();
  if(all.length<2){Q=null;$('#qz').innerHTML='<p class="empty">São necessários ao menos 2 cards para o quiz.</p>';$('#qpos').textContent='';return}
- const n=+$('#nq').value||all.length;
- Q={qs:shuf(all).slice(0,n).map(c=>mk(c,all)),k:0,ok:0,done:false};qRender();
+ const n=+$('#nq').value||all.length,t=$('#qt').value;
+ Q={qs:shuf(all).slice(0,n).map(c=>mk(c,all,t==='t'||(t==='m'&&Math.random()<.5))),k:0,ok:0,done:false};qRender();
 }
 function qRender(){
  if(!Q)return;
@@ -119,18 +137,20 @@ function qRender(){
   $('#qz').innerHTML=`<div class="card"><span class="tag">Resultado</span><div class="serif res">${Q.ok} de ${Q.qs.length} (${p}%)</div><div class="bar"><button class="btn" id="again">Refazer</button></div></div>`;
   $('#again').onclick=qStart;return;
  }
- const {c,opts}=Q.qs[Q.k];Q.done=false;
+ const q=Q.qs[Q.k],c=q.c;Q.done=false;
  $('#qpos').textContent=`Questão ${Q.k+1} de ${Q.qs.length} · ${Q.ok} certas`;
- $('#qz').innerHTML=`<div class="card" style="min-height:0"><span class="tag">${esc(c.m)}</span><div class="serif ans">${esc(c.t)}</div></div>`+
-  opts.map((o,j)=>`<button class="opt" data-j="${j}">${esc(o)}</button>`).join('')+`<div id="fb"></div>`;
+ $('#qz').innerHTML=`<div class="card" style="min-height:0"><span class="tag">${esc(c.m)}${q.rev?' · A qual tema isto se refere?':''}</span><div class="serif ans">${esc(q.rev?c.v:c.t)}</div></div>`+
+  q.opts.map((o,j)=>`<button class="opt" data-j="${j}">${esc(o.t)}</button>`).join('')+`<div id="fb"></div>`;
  document.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{
-  if(Q.done)return;Q.done=true;const certo=opts[b.dataset.j]===c.v;if(certo)Q.ok++;
-  document.querySelectorAll('.opt').forEach((x,j)=>{x.disabled=true;if(opts[j]===c.v)x.classList.add('ok');else if(x===b)x.classList.add('bad')});
+  if(Q.done)return;Q.done=true;if(q.opts[b.dataset.j].ok)Q.ok++;
+  document.querySelectorAll('.opt').forEach((x,j)=>{const o=q.opts[j];x.disabled=true;
+   if(o.ok)x.classList.add('ok');else if(x===b)x.classList.add('bad');
+   if(!o.ok&&o.f)x.insertAdjacentHTML('beforeend',`<small class="src">↳ isto descreve: ${esc(o.f)}</small>`)});
   $('#fb').innerHTML=(c.d?`<div class="tip">${esc(c.d)}</div>`:'')+`<div class="bar"><button class="btn" id="nx">${Q.k+1<Q.qs.length?'Próxima ›':'Ver resultado'}</button></div>`;
   $('#nx').onclick=()=>{Q.k++;qRender()};$('#nx').focus();
  });
 }
-$('#nq').onchange=qStart;
+$('#nq').onchange=qStart;$('#qt').onchange=qStart;
 
 /* ---- Início ---- */
 fetch('/api/cards').then(r=>r.json()).then(d=>{

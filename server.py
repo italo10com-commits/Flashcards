@@ -28,13 +28,18 @@ def carregar():
             if len(p) < 2 or not p[0] or not p[1]:
                 continue
             frente = p[0]
-            verso = " | ".join(p[1:-1]) if len(p) > 2 else p[1]
-            dica = p[-1] if len(p) > 2 else ""
+            erradas = []
+            if len(p) >= 4:  # Frente | Verso | Dica | Erradas (separadas por ;;)
+                verso, dica = p[1], p[2]
+                erradas = [x.strip() for x in p[3].split(";;") if x.strip()]
+            else:
+                verso = " | ".join(p[1:-1]) if len(p) > 2 else p[1]
+                dica = p[-1] if len(p) > 2 else ""
             if " - " in frente:  # "Matéria - Tópico"
                 prefixo, frente = frente.split(" - ", 1)
                 if not cards:
                     nome = prefixo  # usa o nome com acentos do próprio card
-            cards.append({"t": frente, "v": verso, "d": dica})
+            cards.append({"t": frente, "v": verso, "d": dica, "e": erradas})
         if cards:
             materias.append({"id": nome_arq, "nome": nome, "cards": cards})
     return materias
