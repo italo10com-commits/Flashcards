@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Caderno de Estudo</title>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,600&family=Public+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f4efe6;--card:#fffdf8;--ink:#1d2433;--mute:#6b7280;--line:#d9d0bf;--acc:#8c2f39;--ok:#2f6b4f;--bad:#b3261e}
+@media(prefers-color-scheme:dark){:root{--bg:#171a21;--card:#1f232d;--ink:#ece7dc;--mute:#9aa1ad;--line:#333a48;--acc:#e08a92;--ok:#6fbf95;--bad:#f0837c}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Public Sans",system-ui,sans-serif}
+.serif{font-family:Newsreader,Georgia,serif}
+main{max-width:760px;margin:0 auto;padding:20px 16px 60px}
+header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;border-bottom:2px solid var(--ink);padding-bottom:12px}
+h1{margin:0;font-size:1.7rem;font-weight:600}
+button{font:inherit;color:inherit;cursor:pointer}
+.tabs button{background:none;border:0;padding:6px 12px;border-bottom:3px solid transparent;font-weight:600;color:var(--mute)}
+.tabs button.on{color:var(--acc);border-color:var(--acc)}
+.filters{margin:16px 0}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:none;border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:.88rem}
+.chip small{color:var(--mute)}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip.on small{color:inherit;opacity:.7}
+.meta{display:flex;justify-content:space-between;align-items:center;color:var(--mute);font-size:.9rem;margin:14px 0 8px}
+.card{display:block;width:100%;min-height:280px;text-align:left;background:var(--card);border:1px solid var(--line);border-left:6px solid var(--acc);border-radius:6px;padding:24px;box-shadow:0 2px 0 var(--line)}
+.tag{display:block;color:var(--acc);font-size:.85rem;font-weight:600;margin-bottom:14px}
+.q{font-size:1.9rem;line-height:1.25}
+.ans{font-size:1.3rem;line-height:1.5}
+.tip{margin-top:18px;padding-top:12px;border-top:1px dashed var(--line);color:var(--mute);font-size:.95rem}
+.hint{display:block;margin-top:24px;color:var(--mute);font-size:.85rem}
+.bar{display:flex;gap:10px;justify-content:center;align-items:center;margin-top:14px}
+.btn{background:var(--ink);color:var(--bg);border:0;border-radius:6px;padding:9px 18px;font-weight:600}
+.btn.alt{background:none;color:var(--ink);border:1px solid var(--line)}
+.opt{display:block;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:12px 14px;margin-top:10px;font-family:Newsreader,Georgia,serif;font-size:1.05rem}
+.opt:hover:not(:disabled){border-color:var(--ink)}
+.opt.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 15%,var(--card))}
+.opt.bad{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 15%,var(--card))}
+.opt:disabled{cursor:default;color:var(--ink)}
+.res{font-size:2.4rem;margin:8px 0}
+.empty{color:var(--mute);text-align:center;padding:40px 0}
+label{display:flex;gap:6px;align-items:center}
+select{font:inherit;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:4px}
+.hide{display:none}
+</style></head><body><main>
+<header>
+ <h1 class="serif">Caderno de Estudo</h1>
+ <nav class="tabs"><button data-m="fc" class="on">Flashcards</button><button data-m="qz">Quiz</button></nav>
+</header>
+<section class="filters"><div class="chips" id="chips"></div></section>
+<section id="fcv">
+ <div class="meta"><span id="pos"></span><label><input type="checkbox" id="shuf" checked> Embaralhar</label></div>
+ <div id="fc"></div>
+ <div class="bar"><button class="btn alt" id="prev">‹ Anterior</button><button class="btn" id="next">Próximo ›</button></div>
+</section>
+<section id="qzv" class="hide">
+ <div class="meta"><span id="qpos"></span><label>Questões <select id="nq"><option value="10">10</option><option value="20">20</option><option value="0">Todas</option></select></label></div>
+ <div id="qz"></div>
+</section>
+</main>
+<script>
+const $=s=>document.querySelector(s);
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const shuf=a=>{a=[...a];for(let k=a.length-1;k>0;k--){const j=Math.random()*(k+1)|0;[a[k],a[j]]=[a[j],a[k]]}return a};
+let D=[],sel=new Set(),mode='fc',deck=[],i=0,flip=false,Q=null;
+const pool=()=>D.filter(m=>sel.has(m.id)).flatMap(m=>m.cards.map(c=>({...c,m:m.nome,mid:m.id})));
+const save=()=>{try{localStorage.setItem('sel',JSON.stringify([...sel]))}catch(e){}};
+
+function chips(){
+ const all=sel.size===D.length;
+ $('#chips').innerHTML=`<button class="chip ${all?'on':''}" data-id="*">Todas</button>`+
+  D.map(m=>`<button class="chip ${sel.has(m.id)&&!all?'on':''}" data-id="${esc(m.id)}">${esc(m.nome)} <small>${m.cards.length}</small></button>`).join('');
+}
+$('#chips').onclick=e=>{
+ const b=e.target.closest('.chip');if(!b)return;const id=b.dataset.id;
+ if(id==='*'||sel.size===D.length){sel=new Set(id==='*'?D.map(m=>m.id):[id])}
+ else{sel.has(id)?sel.delete(id):sel.add(id);if(!sel.size)sel=new Set(D.map(m=>m.id))}
+ save();chips();start();
+};
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
+ mode=b.dataset.m;document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));
+ $('#fcv').classList.toggle('hide',mode!=='fc');$('#qzv').classList.toggle('hide',mode!=='qz');start();
+});
+const start=()=>mode==='fc'?fcStart():qStart();
+
+/* ---- Flashcards ---- */
+function fcStart(){deck=$('#shuf').checked?shuf(pool()):pool();i=0;flip=false;fcRender()}
+function fcRender(){
+ const c=deck[i];
+ if(!c){$('#fc').innerHTML='<p class="empty">Nenhum card encontrado.</p>';$('#pos').textContent='';return}
+ $('#fc').innerHTML=`<button class="card" id="card"><span class="tag">${esc(c.m)}</span>`+
+  (flip?`<div class="serif ans">${esc(c.v)}</div>${c.d?`<div class="tip">${esc(c.d)}</div>`:''}`
+       :`<div class="serif q">${esc(c.t)}</div><span class="hint">Toque para ver a resposta</span>`)+`</button>`;
+ $('#card').onclick=()=>{flip=!flip;fcRender()};
+ $('#pos').textContent=`Card ${i+1} de ${deck.length}`;
+}
+const go=d=>{if(!deck.length)return;i=(i+d+deck.length)%deck.length;flip=false;fcRender()};
+$('#next').onclick=()=>go(1);$('#prev').onclick=()=>go(-1);$('#shuf').onchange=fcStart;
+document.onkeydown=e=>{if(mode!=='fc'||e.target.tagName==='SELECT')return;
+ if(e.key==='ArrowRight')go(1);else if(e.key==='ArrowLeft')go(-1);
+ else if(e.key===' '){e.preventDefault();flip=!flip;fcRender()}};
+
+/* ---- Quiz ---- */
+function mk(c,all){
+ const outros=all.filter(x=>x.v!==c.v),mesma=outros.filter(x=>x.mid===c.mid);
+ const seen=new Set([c.v]),dis=[];
+ for(const x of [...shuf(mesma),...shuf(outros)]){if(dis.length>=3)break;if(!seen.has(x.v)){seen.add(x.v);dis.push(x.v)}}
+ return {c,opts:shuf([c.v,...dis])};
+}
+function qStart(){
+ const all=pool();
+ if(all.length<2){Q=null;$('#qz').innerHTML='<p class="empty">São necessários ao menos 2 cards para o quiz.</p>';$('#qpos').textContent='';return}
+ const n=+$('#nq').value||all.length;
+ Q={qs:shuf(all).slice(0,n).map(c=>mk(c,all)),k:0,ok:0,done:false};qRender();
+}
+function qRender(){
+ if(!Q)return;
+ if(Q.k>=Q.qs.length){
+  $('#qpos').textContent='';const p=Math.round(100*Q.ok/Q.qs.length);
+  $('#qz').innerHTML=`<div class="card"><span class="tag">Resultado</span><div class="serif res">${Q.ok} de ${Q.qs.length} (${p}%)</div><div class="bar"><button class="btn" id="again">Refazer</button></div></div>`;
+  $('#again').onclick=qStart;return;
+ }
+ const {c,opts}=Q.qs[Q.k];Q.done=false;
+ $('#qpos').textContent=`Questão ${Q.k+1} de ${Q.qs.length} · ${Q.ok} certas`;
+ $('#qz').innerHTML=`<div class="card" style="min-height:0"><span class="tag">${esc(c.m)}</span><div class="serif ans">${esc(c.t)}</div></div>`+
+  opts.map((o,j)=>`<button class="opt" data-j="${j}">${esc(o)}</button>`).join('')+`<div id="fb"></div>`;
+ document.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{
+  if(Q.done)return;Q.done=true;const certo=opts[b.dataset.j]===c.v;if(certo)Q.ok++;
+  document.querySelectorAll('.opt').forEach((x,j)=>{x.disabled=true;if(opts[j]===c.v)x.classList.add('ok');else if(x===b)x.classList.add('bad')});
+  $('#fb').innerHTML=(c.d?`<div class="tip">${esc(c.d)}</div>`:'')+`<div class="bar"><button class="btn" id="nx">${Q.k+1<Q.qs.length?'Próxima ›':'Ver resultado'}</button></div>`;
+  $('#nx').onclick=()=>{Q.k++;qRender()};$('#nx').focus();
+ });
+}
+$('#nq').onchange=qStart;
+
+/* ---- Início ---- */
+fetch('/api/cards').then(r=>r.json()).then(d=>{
+ D=d;if(!D.length){$('#fc').innerHTML='<p class="empty">Nenhum arquivo .txt encontrado em por_materia.</p>';return}
+ try{const s=JSON.parse(localStorage.getItem('sel')||'[]').filter(id=>D.some(m=>m.id===id));sel=new Set(s.length?s:D.map(m=>m.id))}catch(e){sel=new Set(D.map(m=>m.id))}
+ chips();start();
+}).catch(()=>{$('#fc').innerHTML='<p class="empty">Não foi possível carregar os cards.</p>'});
+</script></body></html>

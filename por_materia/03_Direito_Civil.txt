@@ -1,0 +1,13 @@
+Frente | Verso | Dica
+Direito Civil - Personalidade Civil | Começa do nascimento com vida, mas a lei põe a salvo, desde a concepção, os direitos do nascituro. | Teoria natalista (com proteção ao nascituro).
+Direito Civil - Absolutamente Incapazes | Apenas os menores de 16 (dezesseis) anos. Seus atos devem ser representados, sob pena de nulidade. | Estatuto da Pessoa com Deficiência retirou os enfermos mentais dessa categoria.
+Direito Civil - Relativamente Incapazes | Maiores de 16 e menores de 18; ébrios habituais e viciados em tóxicos; aqueles que não puderem exprimir sua vontade; pródigos. | Seus atos devem ser assistidos, sob pena de anulabilidade.
+Direito Civil - Domicílio da Pessoa Natural | Lugar onde ela estabelece a sua residência com ânimo definitivo. Se tiver várias, será qualquer uma delas. | Domicílio = Residência + Animus Definitivo.
+Direito Civil - Negócio Jurídico (Requisitos de Validade) | Agente capaz; objeto lícito, possível, determinado ou determinável; forma prescrita ou não defesa em lei. | Art. 104 do Código Civil.
+Direito Civil - Defeitos do Negócio Jurídico (Anulabilidade) | Erro, Dolo, Coação, Estado de Perigo, Lesão e Fraude contra credores. | Prazo decadencial para anular geralmente é de 4 anos.
+Direito Civil - Negócio Jurídico (Nulidade Absoluta) | Celebração por absolutamente incapaz; objeto ilícito; forma não observada; simulação. | Não convalesce pelo decurso do tempo (não tem prazo).
+Direito Civil - Prescrição | Perda da PRETENSÃO pelo decurso do tempo e inércia do titular. | Prazos previstos nos arts. 205 (regra geral: 10 anos) e 206 do CC. Pode ser interrompida.
+Direito Civil - Decadência | Perda do próprio DIREITO potestativo material pela inércia no prazo legal ou convencional. | Via de regra, prazos decadenciais não se suspendem nem se interrompem.
+Direito Civil - Bens Imóveis por determinação legal | Os direitos reais sobre imóveis e as ações que os asseguram; o direito à sucessão aberta. | A herança é considerada bem imóvel indivisível até a partilha.
+Direito Civil - Bens Públicos (Alienação) | Bens de uso comum e uso especial são inalienáveis (enquanto mantiverem essa destinação). Bens dominicais podem ser alienados. | É necessária a desafetação para vender um bem de uso comum ou especial.
+Direito Civil - Responsabilidade Civil Aquiliana (Extracontratual) | Baseada no art. 186 e 927 do CC. Exige ação/omissão, culpa/dolo, nexo causal e dano. | Regra geral é a responsabilidade subjetiva (depende de culpa).
